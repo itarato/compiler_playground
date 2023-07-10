@@ -1,0 +1,6 @@
+Prog ::= Expr
+Expr ::= ParenExp | NoParenExp 
+ParenExp ::= popen Expr pclose
+NoParenExp ::= num | num Rexpr
+Rexpr ::= Op Expr
+Op ::= add | sub
