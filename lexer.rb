@@ -1,19 +1,25 @@
 class Lexeme
-  NUMBER = 0
-  PAREN_OPEN = 1
-  PAREN_CLOSE = 2
-  OP_ADD = 3
-  OP_SUB = 4
-  KEYWORD = 5
-  NAME = 6
-  BRACE_OPEN = 7
-  BRACE_CLOSE = 8
-  SEMICOLON = 9
+  NUMBER = :number
+  PAREN_OPEN = :paren_open
+  PAREN_CLOSE = :paren_close
+  OP_ADD = :op_add
+  OP_SUB = :op_sub
+  KEYWORD = :keyword
+  NAME = :name
+  BRACE_OPEN = :brace_open
+  BRACE_CLOSE = :brace_close
+  SEMICOLON = :semicolon
+
+  attr_reader(:lexeme)
+  attr_reader(:type)
 
   def initialize(lexeme, type)
     @lexeme = lexeme
     @type = type
   end
+
+  def to_s = "{\"#{@lexeme}\"=#{@type}}"
+  def inspect = to_s
 end
 
 class Lexer
