@@ -59,6 +59,8 @@ class TopDownParser
       elsif mask_ptr < mask.size && mask[mask_ptr].terminal? && token_ptr < @tokens.size && mask[mask_ptr].accept?(@tokens[token_ptr])
         token_ptr += 1
         mask_ptr += 1
+      elsif mask_ptr < mask.size && mask[mask_ptr].epsilon?
+        mask_ptr += 1
       else
         # Backtrack
 

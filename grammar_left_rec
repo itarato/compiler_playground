@@ -1,0 +1,3 @@
+Prog ::= Expr
+Expr ::= num | Expr Op Expr
+Op ::= add | sub

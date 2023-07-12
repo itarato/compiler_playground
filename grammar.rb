@@ -26,8 +26,9 @@ class Grammar
 
     def to_s = @name
     def inspect = to_s
-    def terminal? = @name[0] >= 'a' && @name[0] <= 'z'
-    def rule? = !terminal?
+    def terminal? = !epsilon? && @name[0] >= 'a' && @name[0] <= 'z'
+    def rule? = !terminal? && !epsilon?
+    def epsilon? = @name == 'ε'
 
     def accept?(lexeme)
       return false unless terminal?
