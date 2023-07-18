@@ -4,6 +4,8 @@ class Lexeme
   PAREN_CLOSE = :paren_close
   OP_ADD = :op_add
   OP_SUB = :op_sub
+  OP_MUL = :op_mul
+  OP_DIV = :op_div
   KEYWORD = :keyword
   NAME = :name
   BRACE_OPEN = :brace_open
@@ -53,6 +55,10 @@ class Lexer
       return [i + 1, Lexeme.new(c, Lexeme::OP_ADD)]
     elsif c == '-'
       return [i + 1, Lexeme.new(c, Lexeme::OP_SUB)]
+    elsif c == '*'
+      return [i + 1, Lexeme.new(c, Lexeme::OP_MUL)]
+    elsif c == '/'
+      return [i + 1, Lexeme.new(c, Lexeme::OP_DIV)]
     elsif c == '('
       return [i + 1, Lexeme.new(c, Lexeme::PAREN_OPEN)]
     elsif c == ')'

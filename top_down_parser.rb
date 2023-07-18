@@ -28,7 +28,7 @@ class TopDownParser
   end
 
   def run
-    # The currect resolution of grammar to tokens.
+    # The current resolution of grammar to tokens.
     mask = [Grammar::Elem.new("Prog")]
     # For backtrack - keep operations for reverts.
     opstack = []

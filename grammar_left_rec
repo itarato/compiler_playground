@@ -1,3 +1,5 @@
-Prog ::= Expr
-Expr ::= num | Expr Op Expr
-Op ::= add | sub
+Prog ::= A
+A ::= B alpha | C beta
+B ::= A delta | D gamma
+C ::= epsilon
+D ::= A zeta | omega
