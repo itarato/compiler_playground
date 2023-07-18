@@ -1,0 +1,4 @@
+Prog ::= Expr
+Expr ::= Expr add Term | Expr sub Term | Term
+Term ::= Term mul Factor | Term div Factor | Factor
+Factor ::= popen Expr pclose | num | name
