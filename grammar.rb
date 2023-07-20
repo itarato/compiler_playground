@@ -17,6 +17,27 @@ Grammar:
 =end
 
 class Grammar
+  class Follow
+    attr_reader(:elem)
+
+    def initialize(elem)
+      @elem = elem
+    end
+
+    def to_s = "Follow(#{@elem})"
+    def inspect = to_s
+
+    def ==(other)
+      case other
+      when Follow then @elem == other.elem
+      else false
+      end
+    end
+
+    def hash = @elem.hash
+    def eql?(other) = self == other
+  end
+
   class Elem
     attr_reader(:name)
 
@@ -24,6 +45,7 @@ class Grammar
       @name = name
     end
 
+    def hash = @name.hash
     def to_s = @name
     def inspect = to_s
     def terminal? = !epsilon? && @name[0] >= 'a' && @name[0] <= 'z'
@@ -32,7 +54,7 @@ class Grammar
 
     def accept?(lexeme)
       return false unless terminal?
-      case lexeme.type 
+      case lexeme.type
       when Lexeme::NUMBER then @name == "num"
       when Lexeme::PAREN_OPEN then @name == "popen"
       when Lexeme::PAREN_CLOSE then @name == "pclose"
@@ -55,9 +77,11 @@ class Grammar
       case other
       when String then @name == other
       when Elem then @name == other.name
-      else panic!("Unexpected eq comp: self:#{self} other:#{other}")
+      else false
       end
     end
+
+    def eql?(other) = self == other
   end
 
   class << self
@@ -73,6 +97,8 @@ class Grammar
       end.to_h)
     end
   end
+
+  EOF = :eof
 
   attr_reader(:rules)
 
@@ -102,7 +128,49 @@ class Grammar
   end
 
   def generate_follow_table
-    first_table = generate_first_table
+    follow_table = {
+      "Prog" => [EOF],
+    }
+
+    @rules.keys.each do |name|
+      next if name == "Prog"
+      follow_table[name] = find_right_of(Elem.new(name)).uniq
+    end
+
+    # Refine:
+    while true
+      has_change = false
+
+      follow_table.each do |name, follows|
+        new_subs = []
+        follows_old = follows.clone
+
+        follows.delete_if do |follow|
+          next false if !follow.is_a?(Follow)
+
+          new_subs += follow_table[follow.elem]
+        end
+
+        follows.concat(new_subs).uniq!
+
+        has_change |= follows_old != follows
+      end
+
+      break if !has_change
+    end
+
+    # Filter out non-resolvable placeholders:
+    follow_table.each_value do |follows|
+      follows.delete_if { _1.is_a?(Follow) }
+    end
+
+    follow_table
+  end
+
+  def dump
+    @rules.each do |name, seqs|
+      puts("#{name} ::= #{seqs.map { _1.join(" ") }.join(' | ') }")
+    end
   end
 
   private
@@ -112,7 +180,36 @@ class Grammar
       if seq.first.rule?
         find_first_for(seq.first)
       else
-        [seq.first]  
+        [seq.first]
+      end
+    end
+  end
+
+  def find_right_of(elem)
+    @rules.flat_map do |name, sequences|
+      sequences.flat_map do |seq|
+        # looking for B -> xAy
+        if (i = seq.index(elem))
+          if i + 1 < seq.size # Has y
+            follow = seq[i + 1]
+            if follow.terminal? # y is terminal
+              [follow]
+            else # y is a rule -> First(y)
+              generate_first_table[follow].map do |first_elem|
+                first_elem = Elem.new(first_elem)
+                if first_elem.epsilon? # First(y) has epsilon -> Follow(y)
+                  Follow.new(follow)
+                else # First(y) is ok
+                  first_elem
+                end
+              end
+            end
+          else # Has no y -> Follow(B)
+            [Follow.new(Elem.new(name))]
+          end
+        else
+          []
+        end
       end
     end
   end
@@ -123,7 +220,7 @@ class Grammar
 
     @rules.each do |name, sequences|
       base = Elem.new(name)
-      
+
       inloop.each do |sub_elem|
         new_sequences = []
         sequences.delete_if do |sequence|
@@ -145,8 +242,6 @@ class Grammar
     end
 
     @rules.merge!(new_rules)
-
-    pp(@rules)
   end
 
   def eliminate_direct_left_recursion(elem, sequences)
@@ -156,7 +251,7 @@ class Grammar
       left_ref_seqs.push(seq)
       true
     end
-    
+
     return {} if left_ref_seqs.empty?
 
     panic!("No non-recursive sequences left for rule #{elem}") if sequences.empty?
