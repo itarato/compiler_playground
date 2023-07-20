@@ -3,7 +3,7 @@ class TopDownRecursiveDescent
     @grammar = grammar
     @tokens = tokens
 
-    @first = @grammar.generate_first_table
+    # @start = @grammar.generate_start_table
   end
 
   def run
