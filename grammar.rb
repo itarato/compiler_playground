@@ -168,11 +168,18 @@ class Grammar
     @follow_table
   end
 
+  #
+  # Format:
+  #
+  # {
+  #   [Elem, Idx(seq)] -> [terminal, ...]
+  # }
+  #
   def generate_start_table
     first_table = generate_first_table
     follow_table = generate_follow_table
 
-    @start_table = @rules.flat_map do |name, sequences|
+    @start_table ||= @rules.flat_map do |name, sequences|
       sequences.map.with_index do |sequence, index|
         head = sequence.first
         start_set = if head.terminal?
@@ -196,6 +203,21 @@ class Grammar
           follow_table[name]
         end
         [[name, index], start_set]
+      end
+    end.to_h
+  end
+
+  #
+  # Format:
+  #
+  # {
+  #   [Elem, terminal] -> Idx(seq)
+  # }
+  #
+  def generate_ll1_parse_table
+    @ll1_parse_table ||= generate_start_table.flat_map do |(elem, index), terminals|
+      terminals.map do |terminal|
+        [[elem, terminal], index]
       end
     end.to_h
   end

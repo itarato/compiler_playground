@@ -25,3 +25,7 @@ ap(follow_table)
 start_table = grammar.generate_start_table
 p("Start(?):")
 ap(start_table)
+
+ll1_parse_table = grammar.generate_ll1_parse_table
+p("LL1 parse table:")
+ap(ll1_parse_table)
