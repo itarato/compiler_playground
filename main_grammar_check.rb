@@ -21,3 +21,7 @@ ap(first_table)
 follow_table = grammar.generate_follow_table
 p("Follow(?):")
 ap(follow_table)
+
+start_table = grammar.generate_start_table
+p("Start(?):")
+ap(start_table)

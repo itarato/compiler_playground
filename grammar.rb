@@ -39,6 +39,8 @@ class Grammar
   end
 
   class Elem
+    EPSILON = 'ε'
+
     attr_reader(:name)
 
     def initialize(name)
@@ -50,7 +52,7 @@ class Grammar
     def inspect = to_s
     def terminal? = !epsilon? && @name[0] >= 'a' && @name[0] <= 'z'
     def rule? = !terminal? && !epsilon?
-    def epsilon? = @name == 'ε'
+    def epsilon? = @name == EPSILON
 
     def accept?(lexeme)
       return false unless terminal?
@@ -128,27 +130,29 @@ class Grammar
   end
 
   def generate_follow_table
-    follow_table = {
+    return @follow_table if defined?(@follow_table)
+
+    @follow_table = {
       "Prog" => [EOF],
     }
 
     @rules.keys.each do |name|
       next if name == "Prog"
-      follow_table[name] = find_right_of(Elem.new(name)).uniq
+      @follow_table[name] = find_right_of(Elem.new(name)).uniq
     end
 
     # Refine:
     while true
       has_change = false
 
-      follow_table.each do |name, follows|
+      @follow_table.each do |name, follows|
         new_subs = []
         follows_old = follows.clone
 
         follows.delete_if do |follow|
           next false if !follow.is_a?(Follow)
 
-          new_subs += follow_table[follow.elem]
+          new_subs += @follow_table[follow.elem]
         end
 
         follows.concat(new_subs).uniq!
@@ -160,11 +164,43 @@ class Grammar
     end
 
     # Filter out non-resolvable placeholders:
-    follow_table.each_value do |follows|
+    @follow_table.each_value do |follows|
       follows.delete_if { _1.is_a?(Follow) }
     end
 
-    follow_table
+    @follow_table
+  end
+
+  def generate_start_table
+    first_table = generate_first_table
+    follow_table = generate_follow_table
+
+    @start_table = @rules.flat_map do |name, sequences|
+      sequences.map.with_index do |sequence, index|
+        head = sequence.first
+        start_set = if head.terminal?
+          [head]
+        elsif head.rule?
+          _set = first_table[head]
+          has_epsilon = false
+          _set.delete_if do |elem|
+            next false if !epsilon?(elem)
+
+            has_epsilon = true
+            true
+          end
+
+          if has_epsilon
+            _set.concat(follow_table[name])
+          end
+
+          _set
+        elsif head.epsilon?
+          follow_table[name]
+        end
+        [[name, index], start_set]
+      end
+    end.to_h
   end
 
   def dump
