@@ -1,22 +1,32 @@
 require_relative("lexer")
 require_relative("util")
 
-=begin
+#
+# Wraps a string into a Grammar::Elem.
+#
+def E(o)
+  raise("Unexpected type: #{o.class.name}") unless o.is_a?(String)
+  Grammar::Elem.new(o)
+end
 
-Grammar:
-{
-  Name1 => [
-    [t111, t112, ...],
-    [t121, t122, ...],
-  ],
-  Name2 => [
-    [t211, t212, ...],
-  ]
-  ...
-}
-=end
-
+#
+# Grammar format (Backus-Naur form):
+#
+# {
+#   Name1 => [
+#     [t111, t112, ...],
+#     [t121, t122, ...],
+#   ],
+#   Name2 => [
+#     [t211, t212, ...],
+#   ]
+#   ...
+# }
+#
 class Grammar
+  #
+  # Follow represents a temporary follow(A) token during a follow-table generation.
+  #
   class Follow
     attr_reader(:elem)
 
@@ -24,23 +34,17 @@ class Grammar
       @elem = elem
     end
 
-    def to_s = "Follow(#{@elem})"
-    def inspect = to_s
-
-    def ==(other)
-      case other
-      when Follow then @elem == other.elem
-      else false
-      end
-    end
-
+    def ==(other) = other.is_a?(Follow) && @elem == other.elem
     def hash = @elem.hash
     def eql?(other) = self == other
+    def to_s = "Follow(#{@elem})"
+    def inspect = to_s
   end
 
+  #
+  # Elem is a grammar primitive, symbolizing a name (rule or terminal [including eof and epsilon]).
+  #
   class Elem
-    EPSILON = 'ε'
-
     attr_reader(:name)
 
     def initialize(name)
@@ -53,7 +57,12 @@ class Grammar
     def terminal? = !epsilon? && @name[0] >= 'a' && @name[0] <= 'z'
     def rule? = !terminal? && !epsilon?
     def epsilon? = @name == EPSILON
+    def ==(other) = other.is_a?(Elem) && @name == other.name
+    def eql?(other) = self == other
 
+    #
+    # Whether a certain terminal Grammar::Elem is a reference to a Lexeme.
+    #
     def accept?(lexeme)
       return false unless terminal?
       case lexeme.type
@@ -73,59 +82,47 @@ class Grammar
       else panic!("Unknown lexeme: #{lexeme}")
       end
     end
-
-    def ==(other)
-      # pp("EQ: #{self} <-> #{other}")
-      case other
-      when String then @name == other
-      when Elem then @name == other.name
-      else false
-      end
-    end
-
-    def eql?(other) = self == other
   end
 
   class << self
+    #
+    # Parse a raw grammar into the type.
+    #
     def read(raw)
       Grammar.new(raw.lines.map(&:strip).map do |line|
         name, raw_rule = line.split(" ::= ")
 
         sequences = raw_rule
           .split(" | ")
-          .map { |raw_seq| raw_seq.split(" ").map { |elem| Elem.new(elem) } }
+          .map { |raw_seq| raw_seq.split(" ").map { E(_1) } }
 
-        [name, sequences]
+        [E(name), sequences]
       end.to_h)
     end
   end
-
-  EOF = :eof
 
   attr_reader(:rules)
 
   def initialize(rules)
     @rules = rules
 
-    raise("Missing Prog start rule") unless @rules.key?("Prog")
+    raise("Missing Prog start rule") unless @rules.key?(E("Prog"))
   end
 
   def sequences_of(elem)
-    case elem
-    when String then @rules[elem]
-    when Elem then @rules[elem.name]
-    else panic!("Incorrect elem type: #{elem.class.name}")
-    end
+    @rules[elem]
   end
 
   def eliminate_left_recursion
     reduce_indirect_left_recursion
   end
 
+  #
   # Must be non-left recursive before calling this.
+  #
   def generate_first_table
     @first_table ||= @rules.map do |name, sequences|
-      [name, find_first_for(Elem.new(name)).map(&:name).to_set]
+      [name, find_first_for(name).to_set]
     end.to_h
   end
 
@@ -133,12 +130,12 @@ class Grammar
     return @follow_table if defined?(@follow_table)
 
     @follow_table = {
-      "Prog" => [EOF],
+      START_ELEM => [EOF_ELEM],
     }
 
     @rules.keys.each do |name|
-      next if name == "Prog"
-      @follow_table[name] = find_right_of(Elem.new(name)).uniq
+      next if name == START_ELEM
+      @follow_table[name] = find_right_of(name).uniq
     end
 
     # Refine:
@@ -184,7 +181,7 @@ class Grammar
           _set = first_table[head]
           has_epsilon = false
           _set.delete_if do |elem|
-            next false if !epsilon?(elem)
+            next false if !elem.epsilon?
 
             has_epsilon = true
             true
@@ -232,7 +229,6 @@ class Grammar
               [follow]
             else # y is a rule -> First(y)
               generate_first_table[follow].map do |first_elem|
-                first_elem = Elem.new(first_elem)
                 if first_elem.epsilon? # First(y) has epsilon -> Follow(y)
                   Follow.new(follow)
                 else # First(y) is ok
@@ -241,9 +237,9 @@ class Grammar
               end
             end
           else # Has no y -> Follow(B)
-            [Follow.new(Elem.new(name))]
+            [Follow.new(name)]
           end
-        else
+        else # No B -> _A_ occurrence.
           []
         end
       end
@@ -254,15 +250,12 @@ class Grammar
     inloop = []
     new_rules = {}
 
-    @rules.each do |name, sequences|
-      base = Elem.new(name)
-
+    @rules.each do |base, sequences|
       inloop.each do |sub_elem|
         new_sequences = []
         sequences.delete_if do |sequence|
           if sequence.first == sub_elem
             new_sequences += sequences_of(sub_elem).map { _1 + sequence[1..] }
-
             true
           else
             false
@@ -292,11 +285,16 @@ class Grammar
 
     panic!("No non-recursive sequences left for rule #{elem}") if sequences.empty?
 
-    new_elem = Elem.new(elem.name + "'")
+    new_elem = E(elem.name + "'")
     sequences.map! { _1.push(new_elem) }
     left_ref_seqs.map! { _1[1..] + [new_elem] }
-    left_ref_seqs.push([Elem.new("ε")])
+    left_ref_seqs.push([EPSILON_ELEM])
 
-    { new_elem.name => left_ref_seqs }
+    { new_elem => left_ref_seqs }
   end
 end
+
+EPSILON = 'ε'
+EOF_ELEM = E("eof")
+START_ELEM = E("Prog")
+EPSILON_ELEM = E(EPSILON)
