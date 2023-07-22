@@ -57,6 +57,7 @@ class Grammar
     def terminal? = !epsilon? && @name[0] >= 'a' && @name[0] <= 'z'
     def rule? = !terminal? && !epsilon?
     def epsilon? = @name == EPSILON
+    def eof? = @name == EOF
     def ==(other) = other.is_a?(Elem) && @name == other.name
     def eql?(other) = self == other
 
@@ -317,6 +318,7 @@ class Grammar
 end
 
 EPSILON = 'ε'
-EOF_ELEM = E("eof")
+EOF = 'eof'
+EOF_ELEM = E(EOF)
 START_ELEM = E("Prog")
 EPSILON_ELEM = E(EPSILON)
