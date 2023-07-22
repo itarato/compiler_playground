@@ -16,7 +16,7 @@ class TopDownParser
       @mask_ptr = mask_ptr
       @token_ptr = token_ptr
       @range = range
-      @seq_idx = seq_idx 
+      @seq_idx = seq_idx
     end
 
     def to_s = "E:#{elem} MP:#{mask_ptr} TP:#{token_ptr} R:#{range} SQI:#{seq_idx}"
@@ -55,7 +55,7 @@ class TopDownParser
 
         opstack.push(op)
 
-        mask = mask[0...mask_ptr] + sequence_candidate + mask[(mask_ptr + 1) ..]
+        mask = mask[0...mask_ptr] + sequence_candidate + mask[(mask_ptr + 1)..]
       elsif mask_ptr < mask.size && mask[mask_ptr].terminal? && token_ptr < @tokens.size && mask[mask_ptr].accept?(@tokens[token_ptr])
         token_ptr += 1
         mask_ptr += 1

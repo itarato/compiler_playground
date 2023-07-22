@@ -54,8 +54,8 @@ class Grammar
     def hash = @name.hash
     def to_s = @name
     def inspect = to_s
-    def terminal? = !epsilon? && @name[0] >= 'a' && @name[0] <= 'z'
-    def rule? = !terminal? && !epsilon?
+    def terminal? = !epsilon? && !eof? && @name[0] >= 'a' && @name[0] <= 'z'
+    def rule? = !terminal? && !epsilon? && !eof?
     def epsilon? = @name == EPSILON
     def eof? = @name == EOF
     def ==(other) = other.is_a?(Elem) && @name == other.name
@@ -66,22 +66,29 @@ class Grammar
     #
     def accept?(lexeme)
       return false unless terminal?
+      self.class.elem_name_for_lexeme(lexeme) == @name
+    end
+
+    def self.elem_name_for_lexeme(lexeme)
       case lexeme.type
-      when Lexeme::NUMBER then @name == "num"
-      when Lexeme::PAREN_OPEN then @name == "popen"
-      when Lexeme::PAREN_CLOSE then @name == "pclose"
-      when Lexeme::OP_ADD then @name == "add"
-      when Lexeme::OP_SUB then @name == "sub"
-      when Lexeme::OP_MUL then @name == "mul"
-      when Lexeme::OP_DIV then @name == "div"
-      when Lexeme::KEYWORD
-        unimplemented!("Keyword accepting is not implemented yet")
-      when Lexeme::NAME then @name == "name"
-      when Lexeme::BRACE_OPEN then @name == "bopen"
-      when Lexeme::BRACE_CLOSE then @name == "bclose"
-      when Lexeme::SEMICOLON then @name == "semicolon"
+      when Lexeme::NUMBER then "num"
+      when Lexeme::PAREN_OPEN then "popen"
+      when Lexeme::PAREN_CLOSE then "pclose"
+      when Lexeme::OP_ADD then "add"
+      when Lexeme::OP_SUB then "sub"
+      when Lexeme::OP_MUL then "mul"
+      when Lexeme::OP_DIV then "div"
+      when Lexeme::KEYWORD then unimplemented!("Keyword accepting is not implemented yet")
+      when Lexeme::NAME then "name"
+      when Lexeme::BRACE_OPEN then "bopen"
+      when Lexeme::BRACE_CLOSE then "bclose"
+      when Lexeme::SEMICOLON then "semicolon"
       else panic!("Unknown lexeme: #{lexeme}")
       end
+    end
+
+    def self.from_lexeme(lexeme)
+      new(elem_name_for_lexeme(lexeme))
     end
   end
 
