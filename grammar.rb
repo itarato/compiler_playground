@@ -78,7 +78,10 @@ class Grammar
       when Lexeme::OP_SUB then "sub"
       when Lexeme::OP_MUL then "mul"
       when Lexeme::OP_DIV then "div"
-      when Lexeme::KEYWORD then unimplemented!("Keyword accepting is not implemented yet")
+      when Lexeme::KEYWORD_IF then "if"
+      when Lexeme::KEYWORD_WHILE then "while"
+      when Lexeme::KEYWORD_FN then "fn"
+      when Lexeme::KEYWORD_ELSE then "else"
       when Lexeme::NAME then "name"
       when Lexeme::BRACE_OPEN then "bopen"
       when Lexeme::BRACE_CLOSE then "bclose"
@@ -129,9 +132,17 @@ class Grammar
   # Must be non-left recursive before calling this.
   #
   def generate_first_table
-    @first_table ||= @rules.map do |name, sequences|
-      [name, find_first_for(name).to_set]
-    end.to_h
+    return @first_table if defined?(@first_table)
+
+    @first_table = {}
+
+    @rules.each do |name, sequences|
+      raise if @first_table.key?(name)
+
+      @first_table[name] = find_first_for(name).to_set
+    end
+
+    @first_table
   end
 
   def generate_follow_table
@@ -143,6 +154,8 @@ class Grammar
 
     @rules.keys.each do |name|
       next if name == START_ELEM
+      raise if @follow_table.key?(name)
+
       @follow_table[name] = find_right_of(name).uniq
     end
 
@@ -184,11 +197,15 @@ class Grammar
   # }
   #
   def generate_start_table
+    return @start_table if defined?(@start_table)
+
+    @start_table = {}
+
     first_table = generate_first_table
     follow_table = generate_follow_table
 
-    @start_table ||= @rules.flat_map do |name, sequences|
-      sequences.map.with_index do |sequence, index|
+    @rules.each do |name, sequences|
+      sequences.each_with_index do |sequence, index|
         head = sequence.first
         start_set = if head.terminal?
           [head]
@@ -203,16 +220,21 @@ class Grammar
           end
 
           if has_epsilon
-            _set.concat(follow_table[name])
+            _set.merge(follow_table[name])
           end
 
           _set
         elsif head.epsilon?
           follow_table[name]
         end
-        [[name, index], start_set]
+
+        raise if @start_table.key?([name, index])
+
+        @start_table[[name, index]] = start_set
       end
-    end.to_h
+    end
+
+    @start_table
   end
 
   #
@@ -223,11 +245,21 @@ class Grammar
   # }
   #
   def generate_ll1_parse_table
-    @ll1_parse_table ||= generate_start_table.flat_map do |(elem, index), terminals|
-      terminals.map do |terminal|
-        [[elem, terminal], index]
+    return @ll1_parse_table if defined?(@ll1_parse_table)
+
+    @ll1_parse_table = {}
+
+    generate_start_table.each do |(elem, index), terminals|
+      terminals.each do |terminal|
+        if @ll1_parse_table.key?([elem, terminal]) && !terminal.eof?
+          panic!("Duplicate key for LL1 parse table. Key: #{elem}-#{terminal}")
+        end
+
+        @ll1_parse_table[[elem, terminal]] = index
       end
-    end.to_h
+    end
+
+    @ll1_parse_table
   end
 
   def dump

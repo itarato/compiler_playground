@@ -1,11 +1,9 @@
 def panic!(msg)
-  $stderr.write("ERROR: #{msg}\n")
-  exit
+  raise("ERROR: #{msg}")
 end
 
 def unimplemented!(msg)
-  $stderr.write("UNIMPLEMENTED: #{msg}\n")
-  exit
+  raise("UNIMPLEMENTED: #{msg}")
 end
 
 def epsilon?(o)

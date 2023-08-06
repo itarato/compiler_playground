@@ -6,7 +6,10 @@ class Lexeme
   OP_SUB = :op_sub
   OP_MUL = :op_mul
   OP_DIV = :op_div
-  KEYWORD = :keyword
+  KEYWORD_IF = :keyword_if
+  KEYWORD_WHILE = :keyword_while
+  KEYWORD_FN = :keyword_fn
+  KEYWORD_ELSE = :keyword_else
   NAME = :name
   BRACE_OPEN = :brace_open
   BRACE_CLOSE = :brace_close
@@ -25,7 +28,12 @@ class Lexeme
 end
 
 class Lexer
-  KEYWORDS = ['while', 'fn', 'if', 'else']
+  KEYWORD_MAP = {
+    'while' => Lexeme::KEYWORD_WHILE,
+    'fn' => Lexeme::KEYWORD_FN,
+    'if' => Lexeme::KEYWORD_IF,
+    'else' => Lexeme::KEYWORD_ELSE,
+  }
 
   def initialize(source)
     @source = source
@@ -34,7 +42,7 @@ class Lexer
   def read_all
     i = 0
     lexemes = []
-    
+
     while !eof?(i)
       i = pass_while_whitespace(i)
       i, lexeme = read_lexeme(i)
@@ -71,8 +79,8 @@ class Lexer
       return [i + 1, Lexeme.new(c, Lexeme::SEMICOLON)]
     elsif is_name_start(c)
       i, lexeme = read_while(i, &method(:is_name_tail))
-      if KEYWORDS.include?(lexeme)
-        return [i, Lexeme.new(lexeme, Lexeme::KEYWORD)]
+      if (lexeme_type = KEYWORD_MAP[lexeme])
+        return [i, Lexeme.new(lexeme, lexeme_type)]
       else
         return [i, Lexeme.new(lexeme, Lexeme::NAME)]
       end
@@ -122,5 +130,5 @@ class Lexer
 
   def is_number(c)
     c >= '0' && c <= '9'
-  end    
+  end
 end
