@@ -2,4 +2,4 @@ fn foobar(abc) {
   print(abc)
 }
 
-1 + 32 - (12 + 23)
+def = 1 + 32 - bar

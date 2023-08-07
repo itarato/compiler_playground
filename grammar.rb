@@ -86,6 +86,7 @@ class Grammar
       when Lexeme::BRACE_OPEN then "bopen"
       when Lexeme::BRACE_CLOSE then "bclose"
       when Lexeme::SEMICOLON then "semicolon"
+      when Lexeme::ASSIGN then "eq"
       else panic!("Unknown lexeme: #{lexeme}")
       end
     end

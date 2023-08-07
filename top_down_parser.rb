@@ -38,7 +38,7 @@ class TopDownParser
     mask_ptr = 0
 
     while true
-      puts("Mask: #{mask} MaskPtr: #{mask_ptr} TokenPtr: #{token_ptr}")
+      puts("\e[93mMask: #{mask} MaskPtr: #{mask_ptr} TokenPtr: #{token_ptr}\e[0m")
 
       if mask_ptr >= mask.size && token_ptr >= @tokens.size
         puts("\\o/ PARSE COMPLETED SUCCESSFULLY \\o/")

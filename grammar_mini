@@ -1,14 +1,14 @@
 Prog ::= BuildingBlockList
 BuildingBlockList ::= BuildingBlock BuildingBlockList | BuildingBlock
 BuildingBlock ::= FnDef | StmtList
-FnDef ::= fn name popen ArgSection bopen StmtList
+FnDef ::= fn name popen ArgSection bopen StmtList bclose
 ArgSection ::= pclose | ArgList pclose
 ArgList ::= name | name comma ArgList
 StmtList ::= Stmt StmtList | Stmt
 Stmt ::= Assign | If | FnCall
 Assign ::= name eq Expr
 If ::= if popen Expr pclose bopen StmtList bclose else bopen StmtList bclose
-FnCall ::= name bopen ArgList bclose
+FnCall ::= name popen ArgList pclose
 Expr ::= ExprElem ExprRest | ExprElem
 ExprRest ::= Op Expr
 Op ::= add | sub
