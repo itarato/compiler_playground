@@ -128,6 +128,49 @@ class Grammar
     reduce_indirect_left_recursion
   end
 
+  def eliminate_left_matching_sequences
+    while (addition = eliminate_left_matching_sequences_step)
+      @rules.merge!(addition)
+    end
+  end
+
+  def eliminate_left_matching_sequences_step
+    @rules.each do |name, sequences|
+      0.upto(sequences.size - 2) do |i|
+        sample_seq = sequences[i]
+
+        (sample_seq.size - 1).downto(0) do |len_idx|
+          match_idxs = (i + 1).upto(sequences.size - 1).filter_map do |other_idx|
+            other_seq = sequences[other_idx]
+            next false if other_seq[0..len_idx] != sample_seq[0..len_idx]
+            other_idx
+          end
+
+          if !match_idxs.empty?
+            match_idxs.push(i)
+
+            new_elem = E(name.name + '"')
+            raise if @rules.key?(new_elem)
+
+            match_prefix = sample_seq[0..len_idx]
+            suffixes = match_idxs.map do |j|
+              suffix = sequences[j][(len_idx + 1)..]
+              suffix.empty? ? [EPSILON_ELEM] : suffix
+            end
+
+            old_sub = match_prefix + [new_elem]
+            sequences.delete_if.with_index { |_, i| match_idxs.include?(i) }
+            sequences.concat([old_sub])
+
+            return { new_elem => suffixes }
+          end
+        end
+      end
+    end
+
+    false
+  end
+
   #
   # Must be non-left recursive before calling this.
   #
@@ -348,6 +391,8 @@ class Grammar
     panic!("No non-recursive sequences left for rule #{elem}") if sequences.empty?
 
     new_elem = E(elem.name + "'")
+    raise if @rules.key?(new_elem)
+
     sequences.map! { _1.push(new_elem) }
     left_ref_seqs.map! { _1[1..] + [new_elem] }
     left_ref_seqs.push([EPSILON_ELEM])

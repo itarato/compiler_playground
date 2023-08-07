@@ -14,6 +14,10 @@ grammar.eliminate_left_recursion
 puts("Eliminate left-recursion:\n\n")
 grammar.dump ; print("\n")
 
+grammar.eliminate_left_matching_sequences
+puts("Eliminate left-matches:\n\n")
+grammar.dump ; print("\n")
+
 first_table = grammar.generate_first_table
 p("First(?):")
 ap(first_table)
