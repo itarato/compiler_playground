@@ -1,4 +1,5 @@
 require_relative("util")
+require_relative("ast")
 
 class TopDownParser
   class Op
@@ -23,6 +24,8 @@ class TopDownParser
   end
 
   def initialize(grammar, tokens)
+    grammar.eliminate_left_recursion
+
     @grammar = grammar
     @tokens = tokens
   end
@@ -37,13 +40,20 @@ class TopDownParser
     # Regarding the variable: mask.
     mask_ptr = 0
 
+    ast_root = AstNode.new(mask[0])
+    ast_current = ast_root
+
     while true
       puts("\e[93mMask: #{mask} MaskPtr: #{mask_ptr} TokenPtr: #{token_ptr}\e[0m")
 
       if mask_ptr >= mask.size && token_ptr >= @tokens.size
+        # Finish parsing. Success.
+
         puts("\\o/ PARSE COMPLETED SUCCESSFULLY \\o/")
-        return
+        return ast_root
       elsif mask_ptr < mask.size && mask[mask_ptr].rule?
+        # Replace non-terminal rule to it's next evaluated sequence.
+
         sequence_candidate = @grammar.sequences_of(mask[mask_ptr])[0]
         op = Op.new(
           elem: mask[mask_ptr],
@@ -55,28 +65,45 @@ class TopDownParser
 
         opstack.push(op)
 
+        # Add the non-terminal rule as a child node - so it can be a parent of its own sequence.
+        ast_current = ast_current.add_child(mask[mask_ptr]) # ??? Are we sure? How do we now when this seq ends?
+
         mask = mask[0...mask_ptr] + sequence_candidate + mask[(mask_ptr + 1)..]
       elsif mask_ptr < mask.size && mask[mask_ptr].terminal? && token_ptr < @tokens.size && mask[mask_ptr].accept?(@tokens[token_ptr])
+        # Token is matching with terminal rule -> step forward.
+
+        ast_current.add_child(@tokens[token_ptr])
+
         token_ptr += 1
         mask_ptr += 1
+
+        # We need to somehow detect that the latest sequence has been surpassed and we are on a parent sequence.
+        # if opstack.last.range.end < mask_ptr
+        #   ast_current = ast_current.parent
+        # end
       elsif mask_ptr < mask.size && mask[mask_ptr].epsilon?
+        # Epsilon rule is found -> step forward (on the mask).
+
         mask_ptr += 1
       else
-        # Backtrack
+        # Backtrack.
 
         while true
           panic!("No more op for backtrack") if opstack.empty?
           op = opstack.pop
 
-          puts("BT the op: #{op}")
-          puts("BT before: #{mask}")
+          p("<< BACKTRACK")
+          # puts("BT the op: #{op}")
+          # puts("BT before: #{mask}")
 
           # Restore state.
           mask = mask[0...op.range.begin] + [op.elem] + mask[(op.range.end + 1)..]
           token_ptr = op.token_ptr
           mask_ptr = op.mask_ptr
 
-          puts("BT after: #{mask}")
+          ast_current = ast_current.reject
+
+          # puts("BT after: #{mask}")
 
           sequence_candidates = @grammar.sequences_of(op.elem)
           # Go to the next available sequence of a rule.
@@ -90,6 +117,8 @@ class TopDownParser
             )
 
             opstack.push(new_op)
+
+            ast_current = ast_current.add_child(op.elem)
 
             mask = mask[0...mask_ptr] + sequence_candidates[op.seq_idx + 1] + mask[(mask_ptr + 1) ..]
 
