@@ -1,0 +1,3 @@
+Prog ::= A B
+A ::= add sub | add sub mul
+B ::= mul sub
