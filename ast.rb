@@ -17,6 +17,12 @@ class AstNode
     end
   end
 
+  def add_node_child(node)
+    node.parent = self
+    @children.push(node)
+    node
+  end
+
   def reject
     panic!("Rejecting root node") if @parent.nil?
 

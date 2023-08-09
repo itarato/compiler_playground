@@ -87,6 +87,7 @@ class Grammar
       when Lexeme::BRACE_CLOSE then "bclose"
       when Lexeme::SEMICOLON then "semicolon"
       when Lexeme::ASSIGN then "eq"
+      when Lexeme::COMMA then "comma"
       else panic!("Unknown lexeme: #{lexeme}")
       end
     end

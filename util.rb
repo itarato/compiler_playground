@@ -1,8 +1,8 @@
-def panic!(msg)
+def panic!(msg = "")
   raise("ERROR: #{msg}")
 end
 
-def unimplemented!(msg)
+def unimplemented!(msg = "")
   raise("UNIMPLEMENTED: #{msg}")
 end
 
@@ -12,4 +12,8 @@ def epsilon?(o)
   when String then o == Grammar::Elem::EPSILON
   else false
   end
+end
+
+def assert!(v)
+  raise("Assertion failed: #{v}") unless v
 end

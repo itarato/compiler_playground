@@ -15,6 +15,7 @@ class Lexeme
   BRACE_CLOSE = :brace_close
   SEMICOLON = :semicolon
   ASSIGN = :assign
+  COMMA = :comma
 
   attr_reader(:lexeme)
   attr_reader(:type)
@@ -80,6 +81,8 @@ class Lexer
       return [i + 1, Lexeme.new(c, Lexeme::SEMICOLON)]
     elsif c == '='
       return [i + 1, Lexeme.new(c, Lexeme::ASSIGN)]
+    elsif c == ','
+      return [i + 1, Lexeme.new(c, Lexeme::COMMA)]
     elsif is_name_start(c)
       i, lexeme = read_while(i, &method(:is_name_tail))
       if (lexeme_type = KEYWORD_MAP[lexeme])

@@ -78,9 +78,9 @@ class TopDownParser
         mask_ptr += 1
 
         # We need to somehow detect that the latest sequence has been surpassed and we are on a parent sequence.
-        # if opstack.last.range.end < mask_ptr
-        #   ast_current = ast_current.parent
-        # end
+        if opstack.last.range.end < mask_ptr
+          ast_current = ast_current.parent
+        end
       elsif mask_ptr < mask.size && mask[mask_ptr].epsilon?
         # Epsilon rule is found -> step forward (on the mask).
 
