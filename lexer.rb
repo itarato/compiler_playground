@@ -29,6 +29,25 @@ class Lexeme
   def inspect = to_s
 end
 
+class TokenStream
+  def initialize(tokens)
+    @tokens = tokens
+    @ptr = 0
+  end
+
+  def token_at_offset(offset)
+    i = @ptr + offset
+    return nil if i >= @tokens.size
+    @tokens[i]
+  end
+
+  def forward = @ptr += 1
+  def current = token_at_offset(0)
+  def next = token_at_offset(1)
+  def next_n(n) = token_at_offset(n)
+  def eof? = @ptr >= @tokens.size
+end
+
 class Lexer
   KEYWORD_MAP = {
     'while' => Lexeme::KEYWORD_WHILE,

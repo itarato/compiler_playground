@@ -7,16 +7,14 @@ require_relative("lexer")
 #
 class HandmadeParser
   def initialize(tokens)
-    @tokens = tokens
+    @tokens = TokenStream.new(tokens)
   end
 
   def parse_program
-    token_ptr = 0
-
     ast_node = AstNode.new(:prog)
 
-    while token_ptr <= @tokens.size
-      block_node, token_ptr = parse_block(token_ptr)
+    while !@tokens.eof?
+      block_node = parse_block
       panic!("Cannot read block") if !block_node
 
       ast_node.add_node_child(block_node)
@@ -25,78 +23,79 @@ class HandmadeParser
     ast_node
   end
 
-  def parse_block(token_ptr)
-    if @tokens[token_ptr].type == Lexeme::KEYWORD_FN
+  def parse_block
+    if @tokens.current.type == Lexeme::KEYWORD_FN
       # Read function defintion
-      parse_fn_def(token_ptr)
+      parse_fn_def
     else
       # Read statement
-      parse_stmt(token_ptr)
+      parse_stmt
     end
   end
 
-  def parse_fn_def(token_ptr)
-    assert!(@tokens[token_ptr].type == Lexeme::KEYWORD_FN)
-    token_ptr += 1
+  def parse_fn_def
+    assert!(@tokens.current.type == Lexeme::KEYWORD_FN)
+    @tokens.forward
 
-    assert!(@tokens[token_ptr].type == Lexeme::NAME)
-    node_name = AstNode.new(@tokens[token_ptr])
-    token_ptr += 1
+    assert!(@tokens.current.type == Lexeme::NAME)
+    node_name = AstNode.new(@tokens.current)
+    @tokens.forward
 
-    assert!(@tokens[token_ptr].type == Lexeme::PAREN_OPEN)
-    token_ptr += 1
+    assert!(@tokens.current.type == Lexeme::PAREN_OPEN)
+    @tokens.forward
 
-    node_arglist, token_ptr = parse_arglist(token_ptr)
+    node_arglist = parse_arglist
 
-    assert!(@tokens[token_ptr].type == Lexeme::PAREN_CLOSE)
-    token_ptr += 1
+    assert!(@tokens.current.type == Lexeme::PAREN_CLOSE)
+    @tokens.forward
 
-    assert!(@tokens[token_ptr].type == Lexeme::BRACE_OPEN)
-    token_ptr += 1
+    assert!(@tokens.current.type == Lexeme::BRACE_OPEN)
+    @tokens.forward
 
-    node_stmtlist, token_ptr = parse_stmt_list(token_ptr, until_lexeme_type: Lexeme::BRACE_CLOSE)
+    node_stmtlist = parse_stmt_list(until_lexeme_type: Lexeme::BRACE_CLOSE)
 
-    assert!(@tokens[token_ptr].type == Lexeme::BRACE_CLOSE)
-    token_ptr += 1
+    assert!(@tokens.current.type == Lexeme::BRACE_CLOSE)
+    @tokens.forward
 
     ast_node = AstNode.new(:fn_def)
     ast_node.add_node_child(node_name)
     ast_node.add_node_child(node_arglist)
+    ast_node.add_node_child(node_stmtlist)
 
-    [ast_node, token_ptr]
+    ast_node
   end
 
-  def parse_stmt(token_ptr)
+  def parse_stmt
     unimplemented!
   end
 
-  def parse_arglist(token_ptr)
+  def parse_arglist
     node = AstNode.new(:arglist)
 
-    while @tokens[token_ptr].type == Lexeme::NAME
-      node.add_node_child(AstNode.new(@tokens[token_ptr]))
+    while @tokens.current.type == Lexeme::NAME
+      node.add_node_child(AstNode.new(@tokens.current))
 
-      token_ptr += 1
+      @tokens.forward
 
-      case @tokens[token_ptr].type
-      when Lexeme::COMMA then token_ptr += 1
+      case @tokens.current.type
+      when Lexeme::COMMA then @tokens.forward
       when Lexeme::PAREN_CLOSE then break
-      else panic!("Unexpected token #{@tokens[token_ptr]} in arglist")
+      else panic!("Unexpected token #{@tokens.current} in arglist")
       end
     end
 
-    [node, token_ptr]
+    node
   end
 
-  def parse_stmt_list(token_ptr, until_lexeme_type:)
+  def parse_stmt_list(until_lexeme_type:)
     node = AstNode.new(:stmt_list)
 
-    while @tokens[token_ptr].type != until_lexeme_type
-      stmt_node, token_ptr = parse_stmt(token_ptr)
+    while @tokens.current.type != until_lexeme_type
+      stmt_node = parse_stmt
 
       node.add_node_child(stmt_node)
     end
 
-    [node, token_ptr]
+    node
   end
 end
