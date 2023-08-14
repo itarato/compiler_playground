@@ -1,4 +1,8 @@
+require("ap")
+# require("pry-byebug")
+
 def panic!(msg = "")
+  # binding.pry
   raise("ERROR: #{msg}")
 end
 
@@ -14,6 +18,8 @@ def epsilon?(o)
   end
 end
 
-def assert!(v)
-  raise("Assertion failed: #{v}") unless v
+def assert!(v, *dumps)
+  return if v
+  ap(dumps)
+  raise("Assertion failed: #{v}")
 end

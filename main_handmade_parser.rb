@@ -6,7 +6,12 @@ require("r_o_v")
 
 source = <<~SOURCE
 fn speak(word) {
+  print(word)
 }
+
+a = 1
+b = 12 + a
+speak(b)
 SOURCE
 
 lexer = Lexer.new(source)
